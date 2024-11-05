@@ -31,8 +31,9 @@ const Frequency = ({ setCurrProblems }) => {
     <>
       {tags && (
         <div className="flex flex-wrap border-b-2 p-2 mb-4">
-          {Object.keys(tags).map((key) => (
+          {Object.keys(tags).map((key,idx) => (
             <span
+            key={idx}
               onClick={() => hanldeTagClick(key)}
               className={`bg-red-100 p-1 m-1 rounded-lg cursor-pointer hover:bg-red-300 text-xs text-gray-700 ${
                 key == selectedTag ? "bg-red-300" : ""

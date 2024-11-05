@@ -13,7 +13,7 @@ const Information = () => {
               className="radial-progress"
               style={{
                 "--value": "70",
-                "--size": "12rem",
+                "--size": "10rem",
                 "--thickness": "2px",
               }}
               role="progressbar"

@@ -45,15 +45,15 @@ const ProblemList = (props) => {
             >
               Difficulty
               <svg
-                class="h-3 w-3 ml-1 text-gray-500"
+                className="h-3 w-3 ml-1 text-gray-500"
                 width="14"
                 height="14"
                 viewBox="0 0 24 24"
-                stroke-width="2"
+                strokeWidth="2"
                 stroke="currentColor"
                 fill="none"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
                 {" "}
                 <path stroke="none" d="M0 0h24v24H0z" />{" "}
@@ -65,15 +65,15 @@ const ProblemList = (props) => {
             <th className="cursor-pointer flex items-center">
               Status
               <svg
-                class="h-3 w-3 ml-1 text-gray-500"
+                className="h-3 w-3 ml-1 text-gray-500"
                 width="14"
                 height="14"
                 viewBox="0 0 24 24"
-                stroke-width="2"
+                strokeWidth="2"
                 stroke="currentColor"
                 fill="none"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
                 {" "}
                 <path stroke="none" d="M0 0h24v24H0z" />{" "}
@@ -85,7 +85,7 @@ const ProblemList = (props) => {
         </thead>
         <tbody>
           {props?.currProblems?.map((problem,idx) => (
-            <ProblemItem problem={problem} idx={idx}/>
+            <ProblemItem key={idx} problem={problem} idx={idx}/>
           ))}
         </tbody>
       </table>
