@@ -1,3 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+input:focus, textarea:focus, select:focus {
+    outline: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+}

@@ -29,7 +29,7 @@ const ProblemList = (props) => {
     props.setCurrProblems(sortOrders[dLevel])
     setDLevel((dLevel+1)%sortOrders.length)
   };
-  console.log("34: ", props);
+  // console.log("34: ", props);
   return (
     <>
       {/* <table className="table w-full opacity-75"> */}
@@ -85,7 +85,7 @@ const ProblemList = (props) => {
         </thead>
         <tbody>
           {props?.currProblems?.map((problem,idx) => (
-            <ProblemItem key={idx} problem={problem} idx={idx}/>
+            <ProblemItem key={idx} problem={problem} idx={idx} setCurrProblems={props.setCurrProblems}/>
           ))}
         </tbody>
       </table>

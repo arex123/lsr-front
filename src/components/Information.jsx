@@ -1,8 +1,35 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Button, Modal } from "flowbite-react";
+import { PContext } from "../store/ProblemProvider";
 
 const Information = () => {
   const [openModal, setOpenModal] = useState(false);
+  const {user,lists} = useContext(PContext)
+
+  const [solved,setSolved]=useState(0)
+  const [value,setValue]=useState(0)
+
+  useEffect(()=>{
+    if(lists){
+      let solv = lists.reduce((acc,curr)=>{
+        if(curr.status){
+          return acc+1
+        }else{
+          return acc
+        }
+      },0)
+      console.log("sovel ",solv)
+      setSolved(solv)
+      // setValue((solv/lists.length)*100)
+      if (lists.length > 0) {
+        setValue(Math.floor(((solv) / lists.length) * 100));
+      } else {
+        setValue(0); // or handle the case when the list is empty
+      }
+      
+    }
+  },[lists])
+  console.log("solv ",value+1,lists.length)
 
   return (
     <div className="w-[25%] flex flex-col items-center space-y-5 ">
@@ -12,13 +39,14 @@ const Information = () => {
             <div
               className="radial-progress"
               style={{
-                "--value": "70",
+                "--value": value,
+                // "--value": '99',
                 "--size": "10rem",
                 "--thickness": "2px",
               }}
               role="progressbar"
             >
-              1/255
+              {solved}/{lists.length}
             </div>
           </figure>
           <div className="card-body">
