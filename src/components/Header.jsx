@@ -8,11 +8,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 const Header = () => {
   const {user,lists,setUser,setList} = useContext(PContext)
-  console.log("1 user ",user)
   const [show,setShow]=useState(false)
   const handleTempLogin= async()=>{
     let res = await axios.get('http://localhost:5050/aditya')
-    console.log("res ",res)
     setUser(res.data.user)
     localStorage.setItem('mylisttoken',res.data.token)
     localStorage.setItem('myleetuser',JSON.stringify(res.data.user))
@@ -38,7 +36,6 @@ const Header = () => {
       </GoogleOAuthProvider>
     );
   };
-  console.log("5 ", user);
   return (
     <div className="flex p-2 my-4 border-b-2 w-full justify-between">
       <h2 className="text-2xl">Leetcode Repetition</h2>

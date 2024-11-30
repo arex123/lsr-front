@@ -8,7 +8,6 @@ export const loginWithGoogle = async () => {
 
   // let res = await fetch(`${import.meta.env.VITE_SERVER_URL}/auth/google/callback`)
   // let data = await res.json()
-  // console.log("99: Data= ",data)
 };
 
 export const logout = async () => {
@@ -17,7 +16,6 @@ export const logout = async () => {
 
 export const fetchUser = async () => {
   try {
-    console.log("21 :", `${import.meta.env.VITE_SERVER_URL}/auth/user`);
     // const res = await fetch(`${import.meta.env.VITE_SERVER_URL}/auth/user`, {
     //   credentials: "include",
     // });
@@ -27,10 +25,8 @@ export const fetchUser = async () => {
       `${import.meta.env.VITE_SERVER_URL}/auth/user`,
       { withCredentials: true }
     );
-    console.log("23 : ", res);
     return res;
   } catch (error) {
-    console.log("24 error ", error);
     return null;
   }
 };
@@ -54,9 +50,7 @@ export const checkIsSolved = async (user, email, problem, sNo) => {
 export const uncheckProblem = async (email, number) => {
   try {
     let result = await api.post("/uncheck", { email, number });
-    console.log("57 reul", result?.data?.success ?? false);
     return  result?.data?.success ?? false
   } catch (err) {
-    console.log("62 err ", err);
   }
 };

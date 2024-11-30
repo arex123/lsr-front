@@ -4,48 +4,44 @@ import { checkIsSolved, uncheckProblem } from "../assets/api";
 import axios from "axios";
 const ProblemItem = ({ problem, idx, setCurrProblems }) => {
   const { user, loading, lists, setList, setLoading } = useContext(PContext);
-  // console.log("propble ",problem)
   const handleCheckboxChange = async () => {
     setLoading({status:'checking'});
-    setTimeout(()=>{
-      setLoading({status:'solved'});
-    },5000)
-    // if (problem.status) {
-    //   let result = await uncheckProblem(user.email, problem.sNo);
-    //   console.log("uncheking result", result);
-    //   if (result) {
-    //     let updatedList = [...lists];
-    //     updatedList[problem.sNo - 1].status = false;
-    //     setList(updatedList);
-    //     localStorage.setItem("mylist", JSON.stringify(updatedList));
+    // setTimeout(()=>{
+    //   setLoading({status:'solved'});
+    // },5000)
+    if (problem.status) {
+      let result = await uncheckProblem(user.email, problem.sNo);
+      if (result) {
+        let updatedList = [...lists];
+        updatedList[problem.sNo - 1].status = false;
+        setList(updatedList);
+        localStorage.setItem("mylist", JSON.stringify(updatedList));
 
-    //     setCurrProblems(updatedList)
+        setCurrProblems(updatedList)
 
         
-    //   }
-    // } else {
-    //   try {
-    //     let solved = await checkIsSolved(
-    //       user.leetcode,
-    //       user.email,
-    //       problem.problem,
-    //       problem.sNo
-    //     );
-    //     console.log("solved", solved);
-    //     if (solved.data.success) {
-    //       alert("congrats");
-    //       let updatedList = [...lists];
-    //       updatedList[problem.sNo - 1].status = true;
-    //       setList(updatedList);
-    //       localStorage.setItem("mylist", JSON.stringify(updatedList));
-    //     } else {
-    //       alert("not solved");
-    //     }
-    //   } catch (err) {
-    //     console.log("not errr 29 ", err);
-    //     alert("not solved");
-    //   }
-    // }
+      }
+    } else {
+      try {
+        let solved = await checkIsSolved(
+          user.leetcode,
+          user.email,
+          problem.problem,
+          problem.sNo
+        );
+        if (solved.data.success) {
+          alert("congrats");
+          let updatedList = [...lists];
+          updatedList[problem.sNo - 1].status = true;
+          setList(updatedList);
+          localStorage.setItem("mylist", JSON.stringify(updatedList));
+        } else {
+          alert("not solved");
+        }
+      } catch (err) {
+        alert("not solved");
+      }
+    }
     // setLoading(false);
   };
   return (

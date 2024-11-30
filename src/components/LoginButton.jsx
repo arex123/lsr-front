@@ -4,15 +4,11 @@ import { googleAuth } from '../assets/api'
 
 const LoginButton = () => {
     const googleResponse =async (authResult)=>{
-        console.log("7, authre ",authResult)
         try{
             if(authResult['code']){
                 let result = await googleAuth(authResult['code'])
-                console.log("10 login button result ",result)
             }
-            console.log(authResult)
         }catch(err){
-            console.log("Error while requesting google code:",err)
         }
     }
     const handleGoogleLogin=useGoogleLogin({

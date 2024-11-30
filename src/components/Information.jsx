@@ -18,7 +18,6 @@ const Information = () => {
           return acc
         }
       },0)
-      console.log("sovel ",solv)
       setSolved(solv)
       // setValue((solv/lists.length)*100)
       if (lists.length > 0) {
@@ -29,7 +28,6 @@ const Information = () => {
       
     }
   },[lists])
-  console.log("solv ",value+1,lists.length)
 
   return (
     <div className="w-[25%] flex flex-col items-center space-y-5 ">

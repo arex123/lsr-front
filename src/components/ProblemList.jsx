@@ -29,7 +29,6 @@ const ProblemList = (props) => {
     props.setCurrProblems(sortOrders[dLevel])
     setDLevel((dLevel+1)%sortOrders.length)
   };
-  // console.log("34: ", props);
   return (
     <>
       {/* <table className="table w-full opacity-75"> */}

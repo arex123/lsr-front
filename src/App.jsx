@@ -14,28 +14,36 @@ import jobDone from "../public/job-done.gif";
 import notDone from "../public/not-done.gif";
 import { Button, Modal } from "flowbite-react";
 import { HiOutlineExclamationCircle } from "react-icons/hi";
+import axios from "axios";
 
 function App() {
   // const [user, setUser] = useState(null);
 
   const [currProblems, setCurrProblems] = useState([]);
-  console.log("currProblems ", currProblems);
+  const [todaysProblem,setTodaysProblem] = useState([])
   const { user, setUser, lists, setList, loading, setLoading } =
     useContext(PContext);
   useEffect(() => {
-    // const fetchData = async () => {
-    //   try {
-    //     const userData = await fetchUser();
-    //     console.log("userData", userData);
-    //     setUser(userData?.user || null);
-    //   } catch (error) {
-    //     console.error("Error fetching user data:", error);
-    //   }
-    // };
+    const fetchData = async () => {
+      try {
+        // const userData = await fetchUser();
+        // setUser(userData?.user || null);
+        const currUser = localStorage.getItem('myleetuser')
+        if(currUser){
+          const todaysProblemSet = await axios.get(import.meta.env.VITE_SERVER_URL+"/getTodaysProblem/"+currUser.email)
+          console.log("todays problem set : ",todaysProblemSet.data.problemsToSolveToday)
+          if(todaysProblemSet.success){
 
-    // fetchData();
+            setTodaysProblem(todaysProblemSet.problemsToSolveToday)
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchData();
     if (localStorage.getItem("mylisttoken")) {
-      console.log("31 ", localStorage.getItem("mylist"));
       setList(JSON.parse(localStorage.getItem("mylist")));
       setUser(JSON.parse(localStorage.getItem("myleetuser")));
       setCurrProblems(JSON.parse(localStorage.getItem("mylist")));
@@ -52,7 +60,6 @@ function App() {
       setLoadingWork(3);
     }
   }, [loading]);
-  console.log("25 user ", lists);
 
   return (
     <div className="flex border border-b-1">
