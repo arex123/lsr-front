@@ -24,12 +24,15 @@ function App() {
   const { user, setUser, lists, setList, loading, setLoading } =
     useContext(PContext);
   useEffect(() => {
+    
     const fetchData = async () => {
+      console.log("29")
       try {
         // const userData = await fetchUser();
         // setUser(userData?.user || null);
         const currUser = localStorage.getItem('myleetuser')
         if(currUser){
+          console.log("35")
           const todaysProblemSet = await axios.get(import.meta.env.VITE_SERVER_URL+"/getTodaysProblem/"+currUser.email)
           console.log("todays problem set : ",todaysProblemSet.data.problemsToSolveToday)
           if(todaysProblemSet.success){
