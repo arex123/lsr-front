@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Button, Modal } from "flowbite-react";
 import { PContext } from "../store/ProblemProvider";
+import { Button } from "antd";
 
 const Information = () => {
   const [openModal, setOpenModal] = useState(false);
@@ -31,7 +31,7 @@ const Information = () => {
 
   return (
     <div className="w-[25%] flex flex-col items-center space-y-5 ">
-      <div className="mt-10">
+      {/* <div className="mt-10">
         <div className="card bg-base-100 w-52 shadow-xl">
           <figure>
             <div
@@ -50,11 +50,11 @@ const Information = () => {
           <div className="card-body">
           <input type="reset" value="Reset" className="btn" onClick={() => setOpenModal(true)}/>
 
-            {/* <Button onClick={() => setOpenModal(true)}>Toggle modal</Button> */}
+            <Button onClick={() => setOpenModal(true)}>Toggle modal</Button>
           </div>
         </div>
-      </div>
-      <Modal show={openModal} onClose={() => setOpenModal(false)}>
+      </div> */}
+      {/* <Modal show={openModal} onClose={() => setOpenModal(false)}>
         <div className="flex flex-col space-y-4 p-10 items-center">
           <div>
             {" "}
@@ -68,7 +68,7 @@ const Information = () => {
             </Button>
           </div>
         </div>
-      </Modal>
+      </Modal> */}
     </div>
   );
 };
