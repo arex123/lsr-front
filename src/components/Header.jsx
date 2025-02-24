@@ -6,6 +6,8 @@
 // import { PContext } from "../store/ProblemProvider";
 // import { renderToStaticMarkup } from "react-dom/server";
 
+import { useState } from "react";
+
 const Header = () => {
   // const {user,lists,setUser,setList} = useContext(PContext)
   // const [show,setShow]=useState(false)
@@ -30,9 +32,21 @@ const Header = () => {
   //   }
   // },[])
 
+  const [counter,setCounter] = useState(1)
+
+  
+  const hanldeSessionSet = ()=>{
+    console.log('39',counter)
+    if(counter===5){
+      console.log('setting')
+      sessionStorage.setItem('lsrUser',JSON.stringify({email:"ad47kumar@gmail.com"}))
+    }
+    
+  }
+
   return (
     <div className="flex p-2 my-4 border-b-2 w-[80%] justify-between">
-      <h2 className="text-2xl">Leetcode Repetition</h2>
+      <h2 className="text-2xl" onClick={hanldeSessionSet}>Leetcode Repetition</h2>
       <div className="flex space-x-3 items-center">
         {/* <a href="https://github.com/arex123" target="_blank">
           {" "}
@@ -66,7 +80,7 @@ const Header = () => {
         </span> */}
 
         {/* {show ? <button onClick={handleLogout}>Logout</button> : <GogleAuthWrapper />} */}
-        <button>Hello, Aditya</button>
+        <button onClick={()=>setCounter(counter+1)}>Hello, Aditya</button>
       </div>
     </div>
   );
