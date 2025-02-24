@@ -37,9 +37,11 @@ const Header = () => {
   
   const hanldeSessionSet = ()=>{
     console.log('39',counter)
+    alert("counter",counter)
     if(counter===5){
       console.log('setting')
       sessionStorage.setItem('lsrUser',JSON.stringify({email:"ad47kumar@gmail.com"}))
+      alert("set")
     }
     
   }
