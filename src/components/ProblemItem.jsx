@@ -12,7 +12,7 @@ const ProblemItem = ({ problem, idx, section, setCurrProblems,solved }) => {
         console.log("Check",section)
         // 🌟 Show modal for difficulty input before calling the API
         setShowModalForDifficulty(true);
-      } else if (section === 1) {
+      } else if (section === "1") {
         // ✅ Mark revision problem as solved and update repetition count
         const payload = {
           email: currUser.email,
@@ -29,6 +29,8 @@ const ProblemItem = ({ problem, idx, section, setCurrProblems,solved }) => {
             p.id === problem.id ? { ...p, Status: true } : p
           )
         );
+
+        console.log("Revision noted, move further...")
       }
     } catch (err) {
       console.error("Error checking/unchecking problem:", err);
