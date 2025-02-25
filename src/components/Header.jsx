@@ -8,7 +8,7 @@
 
 import { useState } from "react";
 
-const Header = () => {
+const Header = ({setIsLogged}) => {
   // const {user,lists,setUser,setList} = useContext(PContext)
   // const [show,setShow]=useState(false)
   // const handleTempLogin= async()=>{
@@ -42,6 +42,7 @@ const Header = () => {
       console.log('setting')
       sessionStorage.setItem('lsrUser',JSON.stringify({email:"ad47kumar@gmail.com"}))
       alert("set")
+      setIsLogged(true)
     }
     
   }
