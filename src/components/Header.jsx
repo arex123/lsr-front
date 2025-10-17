@@ -1,91 +1,196 @@
-// import React, { useCallback, useContext, useEffect, useState } from "react";
-// import { loginWithGoogle, logout } from "../assets/api";
-// import LoginButton from "./LoginButton";
-// import { GoogleOAuthProvider } from "@react-oauth/google";
-// import axios from "axios";
-// import { PContext } from "../store/ProblemProvider";
-// import { renderToStaticMarkup } from "react-dom/server";
-
 import { useState } from "react";
+import { useAuth } from "../store/AuthContext";
+import LoginModal from "./LoginModal";
+import DeleteAccountModal from "./DeleteAccountModal";
 
-const Header = ({setIsLogged}) => {
-  // const {user,lists,setUser,setList} = useContext(PContext)
-  // const [show,setShow]=useState(false)
-  // const handleTempLogin= async()=>{
-  //   let res = await axios.get('http://localhost:5050/aditya')
-  //   setUser(res.data.user)
-  //   localStorage.setItem('mylisttoken',res.data.token)
-  //   localStorage.setItem('myleetuser',JSON.stringify(res.data.user))
-  //   localStorage.setItem('mylist',JSON.stringify(res.data.list))
+const Header = () => {
+  const { user, isAuthenticated, logout } = useAuth();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  //   setShow(res.data.token)
+  const handleLogout = () => {
+    logout();
+    setShowUserMenu(false);
+  };
 
-  // }
-  // const handleLogout = ()=>{
-  //   localStorage.clear()
-  //   setShow(false)
-  // }
-  // useEffect(()=>{
-  //   let token = localStorage.getItem('mylisttoken')
-  //   if(token){
-  //     setShow(token)
-  //   }
-  // },[])
+  const handleDeleteAccount = () => {
+    setShowUserMenu(false);
+    setShowDeleteModal(true);
+  };
 
-  const [counter,setCounter] = useState(1)
-
-  
-  const hanldeSessionSet = ()=>{
-    console.log('39',counter)
-    alert(`counter:${counter}`)
-    if(counter===5){
-      console.log('setting')
-      sessionStorage.setItem('lsrUser',JSON.stringify({email:"ad47kumar@gmail.com"}))
-      alert("set")
-      setIsLogged(true)
-    }
-    
-  }
+  const handleDeleteSuccess = () => {
+    setShowDeleteModal(false);
+    logout(); // Clear auth state
+    window.location.href = "/"; // Redirect to home
+  };
 
   return (
-    <div className="flex p-2 my-4 border-b-2 w-[80%] justify-between">
-      <h2 className="text-2xl" onClick={hanldeSessionSet}>Leetcode Repetition</h2>
-      <div className="flex space-x-3 items-center">
-        {/* <a href="https://github.com/arex123" target="_blank">
-          {" "}
-          <svg
-            className="h-8 w-8 text-gray-500"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            {" "}
-            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
-          </svg>
-        </a> */}
-        {/* <span onClick={handleTempLogin}>
-          <svg
-            className="cursor-pointer h-8 w-8 "
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            {" "}
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />{" "}
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-        </span> */}
+    <>
+      <div className="bg-white shadow-sm border-b sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo */}
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              LeetCode SR
+            </h2>
 
-        {/* {show ? <button onClick={handleLogout}>Logout</button> : <GogleAuthWrapper />} */}
-        <button onClick={()=>setCounter(counter+1)}>Hello, Aditya</button>
+            {/* Auth Section */}
+            <div className="flex space-x-3 items-center">
+              {!isAuthenticated ? (
+                // Login Button
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                >
+                  <svg 
+                    className="w-5 h-5" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" 
+                    />
+                  </svg>
+                  <span className="font-medium">Sign In</span>
+                </button>
+              ) : (
+                // User Menu
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center space-x-3 px-4 py-2 bg-white border-2 border-gray-200 rounded-lg hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                  >
+                    {/* User Avatar */}
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                      {user?.name?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    
+                    {/* User Info */}
+                    <div className="text-left">
+                      <p className="text-sm font-semibold text-gray-800">
+                        {user?.name || 'User'}
+                      </p>
+                    </div>
+
+                    {/* Dropdown Arrow */}
+                    <svg 
+                      className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`}
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {showUserMenu && (
+                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-fadeIn">
+                      {/* User Info Section */}
+                      <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-100">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">
+                          Signed in as
+                        </p>
+                        <p className="text-sm font-semibold text-gray-800 truncate">
+                          {user?.email}
+                        </p>
+                      </div>
+
+                  {/* Menu Items */}
+                  <div className="py-2">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150 flex items-center space-x-3"
+                    >
+                      <svg 
+                        className="w-5 h-5" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" 
+                        />
+                      </svg>
+                      <span className="font-medium">Sign Out</span>
+                    </button>
+
+                    <div className="border-t border-gray-100"></div>
+
+                    <button
+                      onClick={handleDeleteAccount}
+                      className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 transition-colors duration-150 flex items-center space-x-3"
+                    >
+                      <svg 
+                        className="w-5 h-5" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" 
+                        />
+                      </svg>
+                      <span className="font-medium">Delete Account</span>
+                    </button>
+                  </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+
+      {/* Login Modal */}
+      <LoginModal 
+        isOpen={showLoginModal} 
+        onClose={() => setShowLoginModal(false)} 
+      />
+
+      {/* Delete Account Modal */}
+      <DeleteAccountModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onSuccess={handleDeleteSuccess}
+      />
+
+      {/* Click outside to close menu */}
+      {showUserMenu && (
+        <div 
+          className="fixed inset-0 z-20" 
+          onClick={() => setShowUserMenu(false)}
+        />
+      )}
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out;
+        }
+      `}</style>
+    </>
   );
 };
 
