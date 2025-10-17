@@ -115,17 +115,17 @@ const NotesModal = ({ isOpen, onClose, problemId, problemName }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col">
         {/* Header - Fixed */}
-        <div className="flex justify-between items-center p-6 border-b flex-shrink-0">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">📝 Notes</h2>
-            <p className="text-sm text-gray-600 mt-1">{problemName}</p>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">📝 Notes</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{problemName}</p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl font-bold leading-none"
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl font-bold leading-none"
             title="Close"
           >
             ×
@@ -133,14 +133,14 @@ const NotesModal = ({ isOpen, onClose, problemId, problemName }) => {
         </div>
 
         {loading ? (
-          <div className="flex-1 flex items-center justify-center text-gray-500">Loading notes...</div>
+          <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400">Loading notes...</div>
         ) : (
           <>
             {/* Existing Notes - Scrollable */}
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-4">
                 {notes.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400">
+                  <div className="text-center py-8 text-gray-400 dark:text-gray-500">
                     <p className="text-lg">No notes yet</p>
                     <p className="text-sm mt-2">Add your first note below!</p>
                   </div>
@@ -148,7 +148,7 @@ const NotesModal = ({ isOpen, onClose, problemId, problemName }) => {
                   notes.map((note) => (
                     <div
                       key={note._id}
-                      className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                      className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow"
                     >
                       {editingNoteId === note._id ? (
                         // Edit Mode
@@ -156,7 +156,7 @@ const NotesModal = ({ isOpen, onClose, problemId, problemName }) => {
                           <textarea
                             value={editingContent}
                             onChange={(e) => setEditingContent(e.target.value)}
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                            className="w-full p-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                             rows={4}
                             placeholder="Edit your note..."
                             disabled={saving}
@@ -164,14 +164,14 @@ const NotesModal = ({ isOpen, onClose, problemId, problemName }) => {
                           <div className="flex justify-end gap-2">
                             <button
                               onClick={cancelEditing}
-                              className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                              className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
                               disabled={saving}
                             >
                               Cancel
                             </button>
                             <button
                               onClick={() => handleUpdateNote(note._id)}
-                              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:bg-blue-300"
+                              className="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors disabled:bg-blue-300 dark:disabled:bg-blue-800"
                               disabled={saving}
                             >
                               {saving ? "Saving..." : "Save"}
@@ -182,13 +182,13 @@ const NotesModal = ({ isOpen, onClose, problemId, problemName }) => {
                         // View Mode
                         <>
                           <div className="flex justify-between items-start mb-2">
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
                               {formatDate(note.updatedAt || note.createdAt)}
                             </p>
                             <div className="flex gap-2">
                               <button
                                 onClick={() => startEditing(note)}
-                                className="text-blue-500 hover:text-blue-700 p-1"
+                                className="text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 p-1"
                                 title="Edit note"
                                 disabled={saving}
                               >
@@ -198,7 +198,7 @@ const NotesModal = ({ isOpen, onClose, problemId, problemName }) => {
                               </button>
                               <button
                                 onClick={() => handleDeleteNote(note._id)}
-                                className="text-red-500 hover:text-red-700 p-1"
+                                className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-1"
                                 title="Delete note"
                                 disabled={saving}
                               >
@@ -208,7 +208,7 @@ const NotesModal = ({ isOpen, onClose, problemId, problemName }) => {
                               </button>
                             </div>
                           </div>
-                          <p className="text-gray-800 whitespace-pre-wrap">{note.content}</p>
+                          <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{note.content}</p>
                         </>
                       )}
                     </div>
@@ -218,12 +218,12 @@ const NotesModal = ({ isOpen, onClose, problemId, problemName }) => {
             </div>
 
             {/* Add New Note - Fixed at bottom */}
-            <div className="border-t p-6 bg-gray-50 flex-shrink-0">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">Add New Note</h3>
+            <div className="border-t border-gray-200 dark:border-gray-700 p-6 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Add New Note</h3>
               <textarea
                 value={newNoteContent}
                 onChange={(e) => setNewNoteContent(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none placeholder-gray-400 dark:placeholder-gray-500"
                 rows={4}
                 placeholder="Write your thoughts, approaches, gotchas, patterns, or anything helpful..."
                 disabled={saving}
@@ -231,7 +231,7 @@ const NotesModal = ({ isOpen, onClose, problemId, problemName }) => {
               <div className="flex justify-end mt-3">
                 <button
                   onClick={handleAddNote}
-                  className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:bg-green-300 font-semibold"
+                  className="px-6 py-2 bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors disabled:bg-green-300 dark:disabled:bg-green-800 font-semibold"
                   disabled={saving || !newNoteContent.trim()}
                 >
                   {saving ? "Adding..." : "➕ Add Note"}
@@ -242,10 +242,10 @@ const NotesModal = ({ isOpen, onClose, problemId, problemName }) => {
         )}
 
         {/* Footer - Fixed */}
-        <div className="p-4 border-t bg-white flex justify-end flex-shrink-0">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex justify-end flex-shrink-0">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+            className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-semibold"
           >
             Close
           </button>

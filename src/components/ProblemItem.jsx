@@ -163,11 +163,11 @@ const ProblemItem = ({ problem, idx, section, solved, onProblemSolved }) => {
   };
 
   return (
-    <tr className="border-b hover:bg-slate-100 relative" key={problemId}>
-      <td className="p-2 text-center">{idx + 1}</td>
+    <tr className="border-b border-gray-200 dark:border-gray-700 hover:bg-slate-100 dark:hover:bg-gray-800 relative transition-colors" key={problemId}>
+      <td className="p-2 text-center text-gray-800 dark:text-gray-200">{idx + 1}</td>
       <td className="p-2">
         <div className="flex items-center gap-2">
-          <a href={problemLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+          <a href={problemLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
             {problemName}
           </a>
           
@@ -185,7 +185,7 @@ const ProblemItem = ({ problem, idx, section, solved, onProblemSolved }) => {
       <td className={`p-2 text-center font-semibold ${difficultyColors[problemDifficulty] || difficultyColors.Medium}`}>
         {problemDifficulty}
       </td>
-      <td className="p-2">{problemCategory}</td>
+      <td className="p-2 text-gray-800 dark:text-gray-200">{problemCategory}</td>
       
       {/* Done? Column - Only show in sections 1 and 2 */}
       {section != 3 && (

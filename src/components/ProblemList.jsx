@@ -5,16 +5,16 @@ const ProblemList = ({ problems, section, solvedProblemIds, onProblemSolved }) =
     <>
       {problems.length > 0 ? (
         <table className="w-full">
-          <thead>
+          <thead className="bg-gray-100 dark:bg-gray-800">
             <tr>
-              <th className="p-2">Sno</th>
-              <th>Name</th>
-              <th>Difficulty</th>
-              <th>Topic</th>
+              <th className="p-2 text-gray-800 dark:text-gray-200">Sno</th>
+              <th className="text-gray-800 dark:text-gray-200">Name</th>
+              <th className="text-gray-800 dark:text-gray-200">Difficulty</th>
+              <th className="text-gray-800 dark:text-gray-200">Topic</th>
               {section != 3 && (
-                <th className="cursor-pointer flex items-center">Done?</th>
+                <th className="cursor-pointer flex items-center text-gray-800 dark:text-gray-200">Done?</th>
               )}
-              <th>Actions</th>
+              <th className="text-gray-800 dark:text-gray-200">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -31,7 +31,7 @@ const ProblemList = ({ problems, section, solvedProblemIds, onProblemSolved }) =
           </tbody>
         </table>
       ) : (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
           No Problems found
         </div>
       )}
