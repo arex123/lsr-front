@@ -77,7 +77,8 @@ const Dashboard = () => {
         .map(problem => ({
           ...problem,
           overdueDays: overdueMap.get(problem._id) || 0
-        }));
+        }))
+        .filter(problem => problem.overdueDays >= 0); // Only show today's and overdue problems, not future ones
     },
     [allProblems, todaysProblemIds, todaysProblemsWithOverdue]
   );

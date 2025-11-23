@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { problemAPI } from "../utils/api";
 import NotesModal from "./NotesModal";
 
@@ -49,19 +49,19 @@ const ProblemItem = ({ problem, idx, section, solved, onProblemSolved }) => {
     }
   }, [problemId]);
 
-  // Fetch notes count for solved problems
-  useEffect(() => {
-    if (status) {
-      fetchNotesCount();
-    }
-  }, [status, fetchNotesCount]);
+  // REMOVED: Don't fetch notes count on mount - only fetch when modal is opened
+  // This prevents unnecessary API calls for every solved problem on page load
+
+  const handleNotesModalOpen = () => {
+    setShowNotesModal(true);
+    // Fetch notes count when modal opens (lazy loading)
+    fetchNotesCount();
+  };
 
   const handleNotesModalClose = () => {
     setShowNotesModal(false);
-    // Refresh notes count when modal closes
-    if (status) {
-      fetchNotesCount();
-    }
+    // Refresh notes count when modal closes to update the badge
+    fetchNotesCount();
   };
 
   const handleProblem = async () => {
@@ -400,7 +400,7 @@ const ProblemItem = ({ problem, idx, section, solved, onProblemSolved }) => {
           {isDone && (
             <div className="relative">
               <button
-                onClick={() => setShowNotesModal(true)}
+                onClick={handleNotesModalOpen}
                 className="text-purple-500 hover:text-purple-700 hover:bg-purple-50 p-2 rounded transition-colors"
                 title="View/Add Notes"
               >

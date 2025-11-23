@@ -80,7 +80,10 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Login error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Login failed. Please try again.';
-      throw new Error(errorMessage);
+      const requiresVerification = error.response?.data?.requiresVerification || false;
+      const errorObj = new Error(errorMessage);
+      errorObj.requiresVerification = requiresVerification;
+      throw errorObj;
     }
   };
 
@@ -89,6 +92,18 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.register(email, password, name);
 
       if (response.success) {
+        // Check if email verification is required
+        if (response.requiresVerification) {
+          // Don't set user or authenticate, just return success with verification flag
+          return { 
+            success: true, 
+            requiresVerification: true,
+            email: response.email,
+            message: response.message
+          };
+        }
+
+        // Old flow - direct login (if no verification required)
         const userData = response.user;
         const token = response.token;
 

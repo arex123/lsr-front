@@ -72,6 +72,11 @@ export const authAPI = {
     const response = await api.get('/api/auth/me');
     return response.data;
   },
+
+  resendVerificationEmail: async (email) => {
+    const response = await api.post('/api/auth/resend-verification', { email });
+    return response.data;
+  },
 };
 
 // User Management API
@@ -144,13 +149,13 @@ export const problemAPI = {
 
   getProblems: async (filters = {}) => {
     const params = new URLSearchParams();
-    
+
     if (filters.page) params.append('page', filters.page);
     if (filters.limit) params.append('limit', filters.limit);
     if (filters.difficulty) params.append('difficulty', filters.difficulty);
     if (filters.tags) params.append('tags', filters.tags);
     if (filters.search) params.append('search', filters.search);
-    
+
     const response = await api.get(`/api/problems?${params.toString()}`);
     return response.data;
   },
