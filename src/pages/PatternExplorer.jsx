@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { patternAPI, problemAPI } from '../utils/api';
+import EditProblemModal from '../components/EditProblemModal';
 
 const PatternExplorer = () => {
     const [patterns, setPatterns] = useState([]);
@@ -10,24 +11,22 @@ const PatternExplorer = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedPattern, setExpandedPattern] = useState(null);
     const [editingProblem, setEditingProblem] = useState(null);
-    const [editForm, setEditForm] = useState({ title: '', url: '', difficulty: 'Easy', tags: '', notes: '' });
+    const [addingToPattern, setAddingToPattern] = useState(null); // Pattern ID to add to
+    const [addForm, setAddForm] = useState({ title: '', url: '', difficulty: 'Easy', tags: '', notes: '' });
 
     const navigate = useNavigate();
 
     const loadData = async () => {
         try {
             setError(null);
-            // Load patterns first as they are most important
             const patternsData = await patternAPI.getAllPatterns();
             setPatterns(patternsData.patterns || []);
 
-            // Try to load solved problems, but don't block if it fails
             try {
                 const solvedData = await problemAPI.getSolvedProblems();
                 setSolvedIds(new Set(solvedData.solvedProblemIds || []));
             } catch (err) {
                 console.warn('Failed to load solved problems:', err);
-                // Don't set main error, just continue without solved status
             }
         } catch (error) {
             console.error('Failed to load data:', error);
@@ -42,42 +41,66 @@ const PatternExplorer = () => {
     }, []);
 
     const togglePattern = (patternId) => {
-        if (expandedPattern === patternId) {
-            setExpandedPattern(null);
-        } else {
-            setExpandedPattern(patternId);
-        }
+        setExpandedPattern(expandedPattern === patternId ? null : patternId);
     };
 
     const handleEditClick = (problem, e) => {
         e.stopPropagation();
         setEditingProblem(problem);
-        setEditForm({
-            title: problem.title || '',
-            url: problem.url || problem.link || '',
-            difficulty: problem.difficulty || 'Easy',
-            tags: problem.tags ? problem.tags.join(', ') : '',
-            notes: problem.notes || ''
-        });
     };
 
-    const handleUpdate = async (e) => {
+    const handleToggleSolved = async (problem, e) => {
+        e.stopPropagation();
+        const isSolved = solvedIds.has(problem._id);
+
+        try {
+            if (isSolved) {
+                // Unsolve (delete schedule)
+                await problemAPI.deleteProblemSchedule(problem._id);
+                const newSolved = new Set(solvedIds);
+                newSolved.delete(problem._id);
+                setSolvedIds(newSolved);
+            } else {
+                // Solve
+                await problemAPI.markNewProblemSolved(problem._id, problem.difficulty);
+                const newSolved = new Set(solvedIds);
+                newSolved.add(problem._id);
+                setSolvedIds(newSolved);
+            }
+        } catch (error) {
+            console.error('Failed to toggle solved status:', error);
+            alert('Failed to update status');
+        }
+    };
+
+    const handleAddProblem = async (e) => {
         e.preventDefault();
         try {
-            await problemAPI.update(editingProblem._id, {
-                title: editForm.title,
-                url: editForm.url,
-                difficulty: editForm.difficulty,
-                tags: editForm.tags.split(',').map(t => t.trim()).filter(t => t),
-                notes: editForm.notes
+            // 1. Create problem
+            const problemRes = await problemAPI.addProblemManually({
+                title: addForm.title,
+                url: addForm.url,
+                difficulty: addForm.difficulty,
+                tags: addForm.tags.split(',').map(t => t.trim()).filter(t => t),
+                notes: addForm.notes
             });
 
-            setEditingProblem(null);
-            loadData(); // Reload to show changes
-            alert('Problem updated successfully!');
+            if (problemRes.success && problemRes.problem) {
+                // 2. Add to pattern
+                await patternAPI.bulkAddProblems(addingToPattern, [{
+                    problemId: problemRes.problem._id,
+                    difficulty: addForm.difficulty,
+                    notes: addForm.notes
+                }]);
+
+                setAddingToPattern(null);
+                setAddForm({ title: '', url: '', difficulty: 'Easy', tags: '', notes: '' });
+                loadData();
+                alert('Problem added to pattern!');
+            }
         } catch (error) {
-            console.error('Failed to update problem:', error);
-            alert('Failed to update problem');
+            console.error('Failed to add problem:', error);
+            alert('Failed to add problem');
         }
     };
 
@@ -100,12 +123,7 @@ const PatternExplorer = () => {
                 <div className="text-center text-red-400">
                     <p className="text-xl font-semibold mb-2">Error</p>
                     <p>{error}</p>
-                    <button
-                        onClick={loadData}
-                        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    >
-                        Retry
-                    </button>
+                    <button onClick={loadData} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Retry</button>
                 </div>
             </div>
         );
@@ -134,9 +152,7 @@ const PatternExplorer = () => {
                 {/* Patterns List */}
                 <div className="space-y-4">
                     {filteredPatterns.length === 0 ? (
-                        <div className="text-center py-12 text-gray-500">
-                            No patterns found.
-                        </div>
+                        <div className="text-center py-12 text-gray-500">No patterns found.</div>
                     ) : (
                         filteredPatterns.map((pattern) => {
                             const problems = pattern.problems.map(p => p.problemId).filter(Boolean);
@@ -158,25 +174,27 @@ const PatternExplorer = () => {
                                                 <span className="px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 border border-blue-800/50">
                                                     {pattern.category}
                                                 </span>
-                                                <span className="text-gray-400">
-                                                    ({solvedCount} / {totalProblems})
-                                                </span>
+                                                <span className="text-gray-400">({solvedCount} / {totalProblems})</span>
                                             </div>
                                         </div>
 
                                         <div className="flex items-center gap-4 w-full sm:w-1/3">
                                             <div className="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full bg-green-500 transition-all duration-500"
-                                                    style={{ width: `${progress}%` }}
-                                                />
+                                                <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${progress}%` }} />
                                             </div>
-                                            <svg
-                                                className={`w-6 h-6 text-gray-400 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                                                fill="none"
-                                                stroke="currentColor"
-                                                viewBox="0 0 24 24"
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setAddingToPattern(pattern._id);
+                                                }}
+                                                className="p-1 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
+                                                title="Add Problem to Pattern"
                                             >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                </svg>
+                                            </button>
+                                            <svg className={`w-6 h-6 text-gray-400 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                             </svg>
                                         </div>
@@ -199,16 +217,19 @@ const PatternExplorer = () => {
                                                         {problems.map((problem) => (
                                                             <tr key={problem._id} className="hover:bg-gray-700/50 transition-colors">
                                                                 <td className="px-6 py-4">
-                                                                    <div className={`w-5 h-5 rounded border flex items-center justify-center ${solvedIds.has(problem._id)
-                                                                            ? 'bg-green-500 border-green-500 text-white'
-                                                                            : 'border-gray-600'
-                                                                        }`}>
+                                                                    <button
+                                                                        onClick={(e) => handleToggleSolved(problem, e)}
+                                                                        className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${solvedIds.has(problem._id)
+                                                                                ? 'bg-green-500 border-green-500 text-white'
+                                                                                : 'border-gray-600 hover:border-gray-400'
+                                                                            }`}
+                                                                    >
                                                                         {solvedIds.has(problem._id) && (
                                                                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                                                             </svg>
                                                                         )}
-                                                                    </div>
+                                                                    </button>
                                                                 </td>
                                                                 <td className="px-6 py-4">
                                                                     <a
@@ -253,49 +274,52 @@ const PatternExplorer = () => {
             </div>
 
             {/* Edit Modal */}
-            {editingProblem && (
+            <EditProblemModal
+                isOpen={!!editingProblem}
+                onClose={() => setEditingProblem(null)}
+                problem={editingProblem}
+                onUpdate={loadData}
+            />
+
+            {/* Add Problem Modal */}
+            {addingToPattern && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
                     <div className="bg-gray-800 rounded-xl shadow-xl w-full max-w-lg overflow-hidden border border-gray-700">
                         <div className="px-6 py-4 border-b border-gray-700 flex justify-between items-center">
-                            <h3 className="text-lg font-semibold text-white">Edit Problem</h3>
-                            <button
-                                onClick={() => setEditingProblem(null)}
-                                className="text-gray-400 hover:text-white"
-                            >
+                            <h3 className="text-lg font-semibold text-white">Add Problem to Pattern</h3>
+                            <button onClick={() => setAddingToPattern(null)} className="text-gray-400 hover:text-white">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
 
-                        <form onSubmit={handleUpdate} className="p-6 space-y-4">
+                        <form onSubmit={handleAddProblem} className="p-6 space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
                                 <input
                                     type="text"
-                                    value={editForm.title}
-                                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                                    value={addForm.title}
+                                    onChange={(e) => setAddForm({ ...addForm, title: e.target.value })}
                                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     required
                                 />
                             </div>
-
                             <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-1">Link (URL)</label>
                                 <input
                                     type="url"
-                                    value={editForm.url}
-                                    onChange={(e) => setEditForm({ ...editForm, url: e.target.value })}
+                                    value={addForm.url}
+                                    onChange={(e) => setAddForm({ ...addForm, url: e.target.value })}
                                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 />
                             </div>
-
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-300 mb-1">Difficulty</label>
                                     <select
-                                        value={editForm.difficulty}
-                                        onChange={(e) => setEditForm({ ...editForm, difficulty: e.target.value })}
+                                        value={addForm.difficulty}
+                                        onChange={(e) => setAddForm({ ...addForm, difficulty: e.target.value })}
                                         className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     >
                                         <option value="Easy">Easy</option>
@@ -307,37 +331,24 @@ const PatternExplorer = () => {
                                     <label className="block text-sm font-medium text-gray-300 mb-1">Tags</label>
                                     <input
                                         type="text"
-                                        value={editForm.tags}
-                                        onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })}
+                                        value={addForm.tags}
+                                        onChange={(e) => setAddForm({ ...addForm, tags: e.target.value })}
                                         className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
                                 </div>
                             </div>
-
                             <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-1">Notes</label>
                                 <textarea
-                                    value={editForm.notes}
-                                    onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                                    value={addForm.notes}
+                                    onChange={(e) => setAddForm({ ...addForm, notes: e.target.value })}
                                     rows="3"
                                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 ></textarea>
                             </div>
-
                             <div className="pt-4 flex justify-end space-x-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setEditingProblem(null)}
-                                    className="px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                >
-                                    Save Changes
-                                </button>
+                                <button type="button" onClick={() => setAddingToPattern(null)} className="px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors">Cancel</button>
+                                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Add Problem</button>
                             </div>
                         </form>
                     </div>
