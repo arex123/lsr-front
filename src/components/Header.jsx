@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../store/AuthContext";
 import { useTheme } from "../store/ThemeContext";
 import { authAPI } from "../utils/api";
@@ -54,11 +55,11 @@ const Header = () => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              SR
-            </h2>
-
-            {/* Auth Section */}
+            <Link to="/" className="flex items-center space-x-2 group">
+              <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 group-hover:from-blue-500 group-hover:to-indigo-500 transition-all duration-300">
+                SR
+              </span>
+            </Link>   {/* Auth Section */}
             <div className="flex space-x-3 items-center">
               {/* Theme Toggle Button */}
               <button

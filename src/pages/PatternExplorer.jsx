@@ -6,6 +6,7 @@ const PatternExplorer = () => {
     const [patterns, setPatterns] = useState([]);
     const [solvedIds, setSolvedIds] = useState(new Set());
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedPattern, setExpandedPattern] = useState(null);
     const [editingProblem, setEditingProblem] = useState(null);
@@ -15,15 +16,22 @@ const PatternExplorer = () => {
 
     const loadData = async () => {
         try {
-            const [patternsData, solvedData] = await Promise.all([
-                patternAPI.getAllPatterns(),
-                problemAPI.getSolvedProblems()
-            ]);
-
+            setError(null);
+            // Load patterns first as they are most important
+            const patternsData = await patternAPI.getAllPatterns();
             setPatterns(patternsData.patterns || []);
-            setSolvedIds(new Set(solvedData.solvedProblemIds || []));
+
+            // Try to load solved problems, but don't block if it fails
+            try {
+                const solvedData = await problemAPI.getSolvedProblems();
+                setSolvedIds(new Set(solvedData.solvedProblemIds || []));
+            } catch (err) {
+                console.warn('Failed to load solved problems:', err);
+                // Don't set main error, just continue without solved status
+            }
         } catch (error) {
             console.error('Failed to load data:', error);
+            setError('Failed to load patterns. Please try again later.');
         } finally {
             setLoading(false);
         }
@@ -86,6 +94,23 @@ const PatternExplorer = () => {
         );
     }
 
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+                <div className="text-center text-red-400">
+                    <p className="text-xl font-semibold mb-2">Error</p>
+                    <p>{error}</p>
+                    <button
+                        onClick={loadData}
+                        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                        Retry
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gray-900 text-gray-100 py-8 px-4 sm:px-6 lg:px-8">
             <div className="max-w-5xl mx-auto">
@@ -108,116 +133,122 @@ const PatternExplorer = () => {
 
                 {/* Patterns List */}
                 <div className="space-y-4">
-                    {filteredPatterns.map((pattern) => {
-                        const problems = pattern.problems.map(p => p.problemId).filter(Boolean);
-                        const totalProblems = problems.length;
-                        const solvedCount = problems.filter(p => solvedIds.has(p._id)).length;
-                        const progress = totalProblems > 0 ? (solvedCount / totalProblems) * 100 : 0;
-                        const isExpanded = expandedPattern === pattern._id;
+                    {filteredPatterns.length === 0 ? (
+                        <div className="text-center py-12 text-gray-500">
+                            No patterns found.
+                        </div>
+                    ) : (
+                        filteredPatterns.map((pattern) => {
+                            const problems = pattern.problems.map(p => p.problemId).filter(Boolean);
+                            const totalProblems = problems.length;
+                            const solvedCount = problems.filter(p => solvedIds.has(p._id)).length;
+                            const progress = totalProblems > 0 ? (solvedCount / totalProblems) * 100 : 0;
+                            const isExpanded = expandedPattern === pattern._id;
 
-                        return (
-                            <div key={pattern._id} className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-                                {/* Accordion Header */}
-                                <div
-                                    onClick={() => togglePattern(pattern._id)}
-                                    className="p-4 sm:p-6 cursor-pointer hover:bg-gray-750 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                                >
-                                    <div className="flex-1">
-                                        <h3 className="text-lg font-semibold text-white mb-1">{pattern.name}</h3>
-                                        <div className="flex items-center gap-3 text-sm">
-                                            <span className="px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 border border-blue-800/50">
-                                                {pattern.category}
-                                            </span>
-                                            <span className="text-gray-400">
-                                                ({solvedCount} / {totalProblems})
-                                            </span>
+                            return (
+                                <div key={pattern._id} className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+                                    {/* Accordion Header */}
+                                    <div
+                                        onClick={() => togglePattern(pattern._id)}
+                                        className="p-4 sm:p-6 cursor-pointer hover:bg-gray-750 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                                    >
+                                        <div className="flex-1">
+                                            <h3 className="text-lg font-semibold text-white mb-1">{pattern.name}</h3>
+                                            <div className="flex items-center gap-3 text-sm">
+                                                <span className="px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 border border-blue-800/50">
+                                                    {pattern.category}
+                                                </span>
+                                                <span className="text-gray-400">
+                                                    ({solvedCount} / {totalProblems})
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-4 w-full sm:w-1/3">
+                                            <div className="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-green-500 transition-all duration-500"
+                                                    style={{ width: `${progress}%` }}
+                                                />
+                                            </div>
+                                            <svg
+                                                className={`w-6 h-6 text-gray-400 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-4 w-full sm:w-1/3">
-                                        <div className="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
-                                            <div
-                                                className="h-full bg-green-500 transition-all duration-500"
-                                                style={{ width: `${progress}%` }}
-                                            />
-                                        </div>
-                                        <svg
-                                            className={`w-6 h-6 text-gray-400 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </div>
-                                </div>
-
-                                {/* Accordion Body */}
-                                {isExpanded && (
-                                    <div className="border-t border-gray-700 bg-gray-800/50">
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-left text-sm">
-                                                <thead className="bg-gray-800 text-gray-400 uppercase font-medium">
-                                                    <tr>
-                                                        <th className="px-6 py-3 w-12">Status</th>
-                                                        <th className="px-6 py-3">Problem</th>
-                                                        <th className="px-6 py-3 w-32">Difficulty</th>
-                                                        <th className="px-6 py-3 w-24 text-right">Actions</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-700">
-                                                    {problems.map((problem) => (
-                                                        <tr key={problem._id} className="hover:bg-gray-700/50 transition-colors">
-                                                            <td className="px-6 py-4">
-                                                                <div className={`w-5 h-5 rounded border flex items-center justify-center ${solvedIds.has(problem._id)
-                                                                        ? 'bg-green-500 border-green-500 text-white'
-                                                                        : 'border-gray-600'
-                                                                    }`}>
-                                                                    {solvedIds.has(problem._id) && (
-                                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                                                        </svg>
-                                                                    )}
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-6 py-4">
-                                                                <a
-                                                                    href={problem.url || problem.link}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="font-medium text-white hover:text-blue-400 transition-colors"
-                                                                >
-                                                                    {problem.title}
-                                                                </a>
-                                                            </td>
-                                                            <td className="px-6 py-4">
-                                                                <span className={`px-2 py-1 rounded text-xs font-medium ${problem.difficulty === 'Easy' ? 'bg-green-900/30 text-green-400' :
-                                                                        problem.difficulty === 'Medium' ? 'bg-yellow-900/30 text-yellow-400' :
-                                                                            'bg-red-900/30 text-red-400'
-                                                                    }`}>
-                                                                    {problem.difficulty}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-6 py-4 text-right">
-                                                                <button
-                                                                    onClick={(e) => handleEditClick(problem, e)}
-                                                                    className="text-gray-500 hover:text-blue-400 transition-colors"
-                                                                >
-                                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                                    </svg>
-                                                                </button>
-                                                            </td>
+                                    {/* Accordion Body */}
+                                    {isExpanded && (
+                                        <div className="border-t border-gray-700 bg-gray-800/50">
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-left text-sm">
+                                                    <thead className="bg-gray-800 text-gray-400 uppercase font-medium">
+                                                        <tr>
+                                                            <th className="px-6 py-3 w-12">Status</th>
+                                                            <th className="px-6 py-3">Problem</th>
+                                                            <th className="px-6 py-3 w-32">Difficulty</th>
+                                                            <th className="px-6 py-3 w-24 text-right">Actions</th>
                                                         </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-700">
+                                                        {problems.map((problem) => (
+                                                            <tr key={problem._id} className="hover:bg-gray-700/50 transition-colors">
+                                                                <td className="px-6 py-4">
+                                                                    <div className={`w-5 h-5 rounded border flex items-center justify-center ${solvedIds.has(problem._id)
+                                                                            ? 'bg-green-500 border-green-500 text-white'
+                                                                            : 'border-gray-600'
+                                                                        }`}>
+                                                                        {solvedIds.has(problem._id) && (
+                                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                                            </svg>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-6 py-4">
+                                                                    <a
+                                                                        href={problem.url || problem.link}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="font-medium text-white hover:text-blue-400 transition-colors"
+                                                                    >
+                                                                        {problem.title}
+                                                                    </a>
+                                                                </td>
+                                                                <td className="px-6 py-4">
+                                                                    <span className={`px-2 py-1 rounded text-xs font-medium ${problem.difficulty === 'Easy' ? 'bg-green-900/30 text-green-400' :
+                                                                            problem.difficulty === 'Medium' ? 'bg-yellow-900/30 text-yellow-400' :
+                                                                                'bg-red-900/30 text-red-400'
+                                                                        }`}>
+                                                                        {problem.difficulty}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-6 py-4 text-right">
+                                                                    <button
+                                                                        onClick={(e) => handleEditClick(problem, e)}
+                                                                        className="text-gray-500 hover:text-blue-400 transition-colors"
+                                                                    >
+                                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
+                                    )}
+                                </div>
+                            );
+                        })
+                    )}
                 </div>
             </div>
 

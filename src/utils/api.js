@@ -99,27 +99,27 @@ export const userAPI = {
 // Pattern API
 export const patternAPI = {
   getAllPatterns: async () => {
-    const response = await api.get("/patterns");
+    const response = await api.get("/api/patterns");
     return response.data;
   },
   getPatternById: async (id) => {
-    const response = await api.get(`/patterns/${id}`);
+    const response = await api.get(`/api/patterns/${id}`);
     return response.data;
   },
   createPattern: async (patternData) => {
-    const response = await api.post("/patterns", patternData);
+    const response = await api.post("/api/patterns", patternData);
     return response.data;
   },
   updatePattern: async (id, patternData) => {
-    const response = await api.put(`/patterns/${id}`, patternData);
+    const response = await api.put(`/api/patterns/${id}`, patternData);
     return response.data;
   },
   deletePattern: async (id) => {
-    const response = await api.delete(`/patterns/${id}`);
+    const response = await api.delete(`/api/patterns/${id}`);
     return response.data;
   },
   bulkAddProblems: async (id, problems) => {
-    const response = await api.post(`/patterns/${id}/problems/bulk`, { problems });
+    const response = await api.post(`/api/patterns/${id}/problems/bulk`, { problems });
     return response.data;
   },
 };
