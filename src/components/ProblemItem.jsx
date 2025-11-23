@@ -35,6 +35,8 @@ const ProblemItem = ({ problem, idx, section, solved, onProblemSolved, activeSes
   const problemLink = problem.url || problem.Link;
   const problemDifficulty = problem.difficulty || "Medium";
   const overdueDays = problem.overdueDays || 0;
+  const nextReviewDate = problem.nextReviewDate;
+  const repetitionCount = problem.repetitionCount || 0;
 
   // Check if this problem is the active session
   const isSessionActive = activeSession && activeSession.problemId === problemId;
@@ -259,7 +261,7 @@ const ProblemItem = ({ problem, idx, section, solved, onProblemSolved, activeSes
   };
 
   const fetchScheduleDetails = async () => {
-    if (!solved || loadingDetails || scheduleDetails) return;
+    if (!isDone || loadingDetails || scheduleDetails) return;
     try {
       setLoadingDetails(true);
       const response = await problemAPI.getProblemScheduleDetails(problemId);
@@ -301,6 +303,35 @@ const ProblemItem = ({ problem, idx, section, solved, onProblemSolved, activeSes
           >
             {problemName}
           </a>
+
+          {/* Info Icon - Shows next review date for solved problems */}
+          {isDone && (
+            <div className="relative group">
+              <svg
+                className="w-4 h-4 text-blue-500 dark:text-blue-400 cursor-help"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+
+              {/* Tooltip */}
+              <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-3 text-sm">
+                <div className="space-y-1.5 text-gray-700 dark:text-gray-300">
+                  <div className="flex justify-between">
+                    <span className="font-semibold">Next Review:</span>
+                    <span className="text-blue-600 dark:text-blue-400">{nextReviewDate ? formatDate(nextReviewDate) : 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-semibold">Solved:</span>
+                    <span>{repetitionCount || 0} time{repetitionCount !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Active Timer Indicator */}
           {isSessionActive && (
             <div className="flex items-center gap-2">

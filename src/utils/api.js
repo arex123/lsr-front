@@ -199,9 +199,17 @@ export const problemAPI = {
     return response.data;
   },
 
-  // Get user's lists
-  getUserLists: async () => {
-    const response = await api.get('/api/lists');
+  // Get all problems (with pagination and filters)
+  getProblems: async ({ page = 1, limit = 20, search = '', difficulty = '', status = '', tags = '' } = {}) => {
+    const params = new URLSearchParams();
+    if (page) params.append('page', page);
+    if (limit) params.append('limit', limit);
+    if (search) params.append('search', search);
+    if (difficulty) params.append('difficulty', difficulty);
+    if (status) params.append('status', status);
+    if (tags) params.append('tags', tags);
+
+    const response = await api.get(`/api/problems?${params.toString()}`);
     return response.data;
   },
 
