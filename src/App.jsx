@@ -1,6 +1,11 @@
 import "./App.css";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
+import AnalyticsDashboard from "./pages/AnalyticsDashboard";
+import ProfilePage from "./pages/ProfilePage";
+import PatternExplorer from "./pages/PatternExplorer";
+import PatternDetail from "./pages/PatternDetail";
+import BulkProblemEntry from "./pages/BulkProblemEntry";
 import VerifyEmail from "./pages/VerifyEmail";
 import ResetPassword from "./pages/ResetPassword";
 import { AuthProvider } from "./store/AuthContext";
@@ -19,19 +24,26 @@ function App() {
             <Routes>
               {/* Email Verification Page (no header) */}
               <Route path="/verify-email" element={<VerifyEmail />} />
-              
+
               {/* Password Reset Page (no header) */}
               <Route path="/reset-password" element={<ResetPassword />} />
-              
+
               {/* Main Dashboard (with header) */}
-              <Route 
-                path="/*" 
+              <Route
+                path="/*"
                 element={
                   <>
                     <Header />
-                    <Dashboard />
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/analytics" element={<AnalyticsDashboard />} />
+                      <Route path="/profile" element={<ProfilePage />} />
+                      <Route path="/patterns" element={<PatternExplorer />} />
+                      <Route path="/patterns/:id" element={<PatternDetail />} />
+                      <Route path="/bulk-add" element={<BulkProblemEntry />} />
+                    </Routes>
                   </>
-                } 
+                }
               />
             </Routes>
           </div>

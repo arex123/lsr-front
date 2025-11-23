@@ -48,38 +48,7 @@ const Header = () => {
 
   return (
     <>
-      {/* Verification Warning Banner */}
-      {isAuthenticated && user && !user.isEmailVerified && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/30 border-b border-yellow-200 dark:border-yellow-800 px-4 py-2">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center text-sm">
-            <div className="flex items-center space-x-2 text-yellow-800 dark:text-yellow-200 mb-2 sm:mb-0">
-              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <span>
-                Your email is not verified. You won't receive daily problem notifications.
-              </span>
-            </div>
 
-            {verificationSent ? (
-              <span className="text-green-600 dark:text-green-400 font-medium flex items-center">
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Email Sent!
-              </span>
-            ) : (
-              <button
-                onClick={handleResendVerification}
-                disabled={isSendingVerification}
-                className="text-yellow-700 dark:text-yellow-300 underline hover:text-yellow-800 dark:hover:text-yellow-100 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSendingVerification ? 'Sending...' : 'Verify Email Now'}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
 
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 sticky top-0 z-30 transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4">
@@ -168,9 +137,11 @@ const Header = () => {
                         <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium mb-1">
                           Signed in as
                         </p>
-                        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
-                          {user?.email}
-                        </p>
+                        <a href="/profile" className="block hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 rounded-md -mx-2 px-2 py-1">
+                          <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
+                            {user?.email}
+                          </p>
+                        </a>
                         {/* Verification Badge in Menu */}
                         <div className="mt-1">
                           {user?.isEmailVerified ? (
@@ -208,6 +179,36 @@ const Header = () => {
                         </button>
 
                         <div className="border-t border-gray-100 dark:border-gray-700"></div>
+
+                        <a
+                          href="/analytics"
+                          className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center space-x-3"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                          <span className="font-medium">Analytics</span>
+                        </a>
+
+                        <a
+                          href="/patterns"
+                          className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center space-x-3"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                          </svg>
+                          <span className="font-medium">Patterns</span>
+                        </a>
+
+                        <a
+                          href="/bulk-add"
+                          className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 flex items-center space-x-3"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                          <span className="font-medium">Bulk Add Problems</span>
+                        </a>
 
                         <button
                           onClick={handleDeleteAccount}

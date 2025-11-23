@@ -86,8 +86,64 @@ export const userAPI = {
     return response.data;
   },
 
-  getStats: async () => {
-    const response = await api.get('/api/users/stats');
+  getUserStats: async () => {
+    const response = await api.get("/users/stats");
+    return response.data;
+  },
+  getUserActivity: async (limit = 10) => {
+    const response = await api.get(`/users/activity?limit=${limit}`);
+    return response.data;
+  },
+};
+
+// Pattern API
+export const patternAPI = {
+  getAllPatterns: async () => {
+    const response = await api.get("/patterns");
+    return response.data;
+  },
+  getPatternById: async (id) => {
+    const response = await api.get(`/patterns/${id}`);
+    return response.data;
+  },
+  createPattern: async (patternData) => {
+    const response = await api.post("/patterns", patternData);
+    return response.data;
+  },
+  updatePattern: async (id, patternData) => {
+    const response = await api.put(`/patterns/${id}`, patternData);
+    return response.data;
+  },
+  deletePattern: async (id) => {
+    const response = await api.delete(`/patterns/${id}`);
+    return response.data;
+  },
+  bulkAddProblems: async (id, problems) => {
+    const response = await api.post(`/patterns/${id}/problems/bulk`, { problems });
+    return response.data;
+  },
+};
+
+
+
+// Analytics API
+export const analyticsAPI = {
+  getHeatmapData: async (startDate, endDate) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+
+    const response = await api.get(`/api/analytics/heatmap?${params.toString()}`);
+    return response.data;
+  },
+
+  getDashboardStats: async () => {
+    const response = await api.get('/api/analytics/dashboard');
+    return response.data;
+  },
+
+  getTrends: async (range = 'week') => {
+    const response = await api.get(`/api/analytics/trends?range=${range}`);
     return response.data;
   },
 };
@@ -144,6 +200,21 @@ export const problemAPI = {
   // Problem management APIs
   addProblemManually: async (problemData) => {
     const response = await api.post('/api/problems/manual', problemData);
+    return response.data;
+  },
+
+  bulkCreate: async (problems) => {
+    const response = await api.post('/api/problems/bulk', { problems });
+    return response.data;
+  },
+
+  getAll: async (filters = {}) => {
+    const response = await api.get('/api/problems', { params: filters });
+    return response.data;
+  },
+
+  update: async (id, problemData) => {
+    const response = await api.put(`/api/problems/${id}`, problemData);
     return response.data;
   },
 
