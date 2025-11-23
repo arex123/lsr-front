@@ -96,6 +96,34 @@ export const userAPI = {
   },
 };
 
+// Analytics API
+export const analyticsAPI = {
+  getHeatmapData: async () => {
+    const response = await api.get('/api/analytics/heatmap');
+    return response.data;
+  },
+  getDashboardStats: async () => {
+    const response = await api.get('/api/analytics/dashboard');
+    return response.data;
+  },
+  getTrends: async () => {
+    const response = await api.get('/api/analytics/trends');
+    return response.data;
+  },
+  getSummary: async () => {
+    const response = await api.get('/api/analytics/summary');
+    return response.data;
+  },
+  getTimeByDifficulty: async () => {
+    const response = await api.get('/api/analytics/time-by-difficulty');
+    return response.data;
+  },
+  getActivityOverTime: async (days = 30) => {
+    const response = await api.get(`/api/analytics/activity?days=${days}`);
+    return response.data;
+  },
+};
+
 // Pattern API
 export const patternAPI = {
   getAllPatterns: async () => {
@@ -124,30 +152,6 @@ export const patternAPI = {
   },
 };
 
-
-
-// Analytics API
-export const analyticsAPI = {
-  getHeatmapData: async (startDate, endDate) => {
-    const params = new URLSearchParams();
-    if (startDate) params.append('startDate', startDate);
-    if (endDate) params.append('endDate', endDate);
-
-    const response = await api.get(`/api/analytics/heatmap?${params.toString()}`);
-    return response.data;
-  },
-
-  getDashboardStats: async () => {
-    const response = await api.get('/api/analytics/dashboard');
-    return response.data;
-  },
-
-  getTrends: async (range = 'week') => {
-    const response = await api.get(`/api/analytics/trends?range=${range}`);
-    return response.data;
-  },
-};
-
 // Problem API
 export const problemAPI = {
   // Legacy problem schedule APIs
@@ -161,17 +165,21 @@ export const problemAPI = {
     return response.data;
   },
 
-  markNewProblemSolved: async (problemId, difficulty) => {
+  // Mark new problem as solved (with optional timeSpent)
+  markNewProblemSolved: async (problemId, difficulty, timeSpent = 0) => {
     const response = await api.post('/api/newProblemSolved', {
       problemId,
       difficulty,
+      timeSpent
     });
     return response.data;
   },
 
-  markRevisionProblemSolved: async (problemId) => {
+  // Mark revision problem as solved (with optional timeSpent)
+  markRevisionProblemSolved: async (problemId, timeSpent = 0) => {
     const response = await api.post('/api/revisionProblemSolved', {
       problemId,
+      timeSpent
     });
     return response.data;
   },
@@ -273,6 +281,27 @@ export const problemAPI = {
 
   deleteNote: async (problemId, noteId) => {
     const response = await api.delete(`/api/problemSchedule/${problemId}/notes/${noteId}`);
+    return response.data;
+  },
+};
+
+// Timer API
+export const timerAPI = {
+  startSession: async (problemId) => {
+    const response = await api.post('/api/timer/start', { problemId });
+    return response.data;
+  },
+  stopSession: async (problemId) => {
+    const response = await api.post('/api/timer/stop', { problemId });
+    return response.data;
+  },
+  getCurrentSession: async () => {
+    const response = await api.get('/api/timer/current');
+    return response.data;
+  },
+  getSessionHistory: async (filters = {}) => {
+    const params = new URLSearchParams(filters);
+    const response = await api.get(`/api/timer/history?${params}`);
     return response.data;
   },
 };

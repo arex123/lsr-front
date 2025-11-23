@@ -6,6 +6,7 @@ import ProfilePage from "./pages/ProfilePage";
 import PatternExplorer from "./pages/PatternExplorer";
 import PatternDetail from "./pages/PatternDetail";
 import BulkProblemEntry from "./pages/BulkProblemEntry";
+import SessionHistory from "./pages/SessionHistory";
 import VerifyEmail from "./pages/VerifyEmail";
 import ResetPassword from "./pages/ResetPassword";
 import { AuthProvider } from "./store/AuthContext";
@@ -41,6 +42,7 @@ function App() {
                       <Route path="/patterns" element={<PatternExplorer />} />
                       <Route path="/patterns/:id" element={<PatternDetail />} />
                       <Route path="/bulk-add" element={<BulkProblemEntry />} />
+                      <Route path="/history" element={<SessionHistory />} />
                     </Routes>
                   </>
                 }

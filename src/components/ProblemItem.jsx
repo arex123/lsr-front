@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { problemAPI } from "../utils/api";
+import { CheckCircleOutlined, CheckOutlined, ClockCircleOutlined, MoreOutlined, EditOutlined, DeleteOutlined, FileTextOutlined, ReloadOutlined } from "@ant-design/icons";
+import { problemAPI, timerAPI } from "../utils/api";
 import NotesModal from "./NotesModal";
 import EditProblemModal from "./EditProblemModal";
 
@@ -7,7 +8,7 @@ import EditProblemModal from "./EditProblemModal";
  * ProblemItem Component
  * Displays individual problem with mark as done functionality
  */
-const ProblemItem = ({ problem, idx, section, solved, onProblemSolved }) => {
+const ProblemItem = ({ problem, idx, section, solved, onProblemSolved, activeSession, onSessionChange }) => {
   const [status, setStatus] = useState(solved);
   const [isMark, setIsMark] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -20,6 +21,11 @@ const ProblemItem = ({ problem, idx, section, solved, onProblemSolved }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [notesCount, setNotesCount] = useState(0);
 
+  // Timer state
+  const [startTime, setStartTime] = useState(null);
+  const [timerActive, setTimerActive] = useState(false);
+  const [showStartModal, setShowStartModal] = useState(false);
+
   const menuRef = useRef(null);
 
   // Support both old and new problem format
@@ -29,6 +35,37 @@ const ProblemItem = ({ problem, idx, section, solved, onProblemSolved }) => {
   const problemLink = problem.url || problem.Link;
   const problemDifficulty = problem.difficulty || "Medium";
   const overdueDays = problem.overdueDays || 0;
+
+  // Check if this problem is the active session
+  const isSessionActive = activeSession && activeSession.problemId === problemId;
+
+  // Live timer state
+  const [elapsedTime, setElapsedTime] = useState(0);
+
+  // Sync with active session
+  useEffect(() => {
+    if (isSessionActive && activeSession.startTime) {
+      setStartTime(new Date(activeSession.startTime).getTime());
+      setTimerActive(true);
+    } else if (!isSessionActive) {
+      setStartTime(null);
+      setTimerActive(false);
+    }
+  }, [activeSession, isSessionActive]);
+
+  // Update elapsed time every second for active session
+  useEffect(() => {
+    if (isSessionActive && startTime) {
+      const interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        setElapsedTime(elapsed);
+      }, 1000);
+
+      return () => clearInterval(interval);
+    } else {
+      setElapsedTime(0);
+    }
+  }, [isSessionActive, startTime]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -73,16 +110,120 @@ const ProblemItem = ({ problem, idx, section, solved, onProblemSolved }) => {
     fetchNotesCount();
   };
 
+  // Handle initial link click - Show confirmation modal
+  const handleLinkClick = (e) => {
+    e.preventDefault(); // Prevent opening link immediately
+
+    // Strict validation: No link = no start
+    if (!problemLink) {
+      alert("⚠️ Cannot start timer: This problem doesn't have a link.\n\nPlease click 'Edit' to add a problem link first.");
+      return;
+    }
+
+    // If already active, just open link
+    if (isSessionActive) {
+      window.open(problemLink, '_blank');
+      return;
+    }
+
+    // Check if another problem has an active session
+    if (activeSession && activeSession.problemId !== problemId) {
+      const confirmed = window.confirm(
+        `⚠️ You already have an active session!\n\n` +
+        `Current: ${activeSession.problemTitle || 'Problem ' + activeSession.problemId}\n\n` +
+        `Starting a new session will STOP the current one. Continue?`
+      );
+      if (!confirmed) return;
+    }
+
+    setShowStartModal(true);
+  };
+
+  // Actually start the problem (Timer + Open Link)
+  const handleStartSolving = async () => {
+    setShowStartModal(false);
+
+    // Open link in new tab
+    window.open(problemLink, '_blank');
+
+    try {
+      // Start session on backend
+      await timerAPI.startSession(problemId);
+      if (onSessionChange) onSessionChange(); // Refresh global state
+
+      // Notification
+      const notification = document.createElement('div');
+      notification.textContent = `⏱️ Timer started for "${problemName}"! Good luck!`;
+      notification.className = 'fixed top-4 right-4 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 animate-bounce';
+      document.body.appendChild(notification);
+      setTimeout(() => {
+        notification.remove();
+      }, 3000);
+    } catch (err) {
+      console.error("Failed to start session:", err);
+    }
+  };
+
+  // Stop/Give Up
+  const handleStopSolving = async () => {
+    if (window.confirm("Are you sure you want to stop? This attempt will be recorded.")) {
+      try {
+        await timerAPI.stopSession(problemId);
+        if (onSessionChange) onSessionChange();
+        setTimerActive(false);
+        setStartTime(null);
+      } catch (err) {
+        console.error("Failed to stop session:", err);
+      }
+    }
+  };
+
   const handleProblem = async () => {
+    // Validation: Check if link exists
+    if (!problemLink) {
+      alert("Please add a link to this problem before solving it. Click the 'Edit' button to add a link.");
+      return;
+    }
+
     try {
       setIsMark(true);
-      if (section == 1) {
-        await problemAPI.markRevisionProblemSolved(problemId);
-      } else {
-        await problemAPI.markNewProblemSolved(problemId, problemDifficulty);
+
+      // Calculate time spent (in seconds)
+      let timeSpent = 0;
+      if (startTime) {
+        timeSpent = Math.floor((Date.now() - startTime) / 1000);
+        setTimerActive(false);
       }
+
+      // Check if penalty will be applied
+      const willPenalize = overdueDays > 4;
+
+      if (section == 1) {
+        const response = await problemAPI.markRevisionProblemSolved(problemId, timeSpent);
+
+        // Show penalty notification if it was applied
+        if (response.penaltyApplied || willPenalize) {
+          alert(
+            `⚠️ LATE PENALTY APPLIED!\n\n` +
+            `You were ${overdueDays} days late.\n` +
+            `Your progress has been RESET for this problem.\n\n` +
+            `You'll need to review it again from the beginning.`
+          );
+        }
+      } else {
+        await problemAPI.markNewProblemSolved(problemId, problemDifficulty, timeSpent);
+      }
+
       setIsMark(false);
       setStatus(true);
+
+      if (timeSpent > 0) {
+        const mins = Math.floor(timeSpent / 60);
+        const secs = timeSpent % 60;
+        const timeMsg = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+        alert(`Problem solved in ${timeMsg}! Great job! 🎉`);
+      }
+
       if (onProblemSolved) onProblemSolved();
     } catch (err) {
       console.error("Error marking problem:", err);
@@ -150,12 +291,43 @@ const ProblemItem = ({ problem, idx, section, solved, onProblemSolved }) => {
       <td className="p-2 text-center text-gray-800 dark:text-gray-200">{idx + 1}</td>
       <td className="p-2">
         <div className="flex items-center gap-2">
-          <a href={problemLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
+          <a
+            href={problemLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={handleLinkClick}
+            className={`text-blue-600 dark:text-blue-400 hover:underline ${!problemLink ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title={!problemLink ? "No link available" : isSessionActive ? "Click to open link (Timer Running)" : "Click to solve (starts timer)"}
+          >
             {problemName}
           </a>
+          {/* Active Timer Indicator */}
+          {isSessionActive && (
+            <div className="flex items-center gap-2">
+              <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full border border-red-200 font-bold flex items-center gap-1.5">
+                <span className="w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+                <span className="font-mono">
+                  {Math.floor(elapsedTime / 60)}:{String(elapsedTime % 60).padStart(2, '0')}
+                </span>
+              </span>
+              <button
+                onClick={(e) => { e.preventDefault(); handleStopSolving(); }}
+                className="text-gray-500 hover:text-red-600 text-xs underline"
+                title="Stop timer and record as abandoned"
+              >
+                Stop
+              </button>
+            </div>
+          )}
           {section === 1 && overdueDays >= 0 && (
             <span className={`text-xs px-2 py-1 rounded-full text-white font-semibold ${getOverdueBadge().color} whitespace-nowrap`}>
               {getOverdueBadge().icon} {getOverdueBadge().text}
+            </span>
+          )}
+          {/* Penalty Warning for >4 days overdue */}
+          {section === 1 && overdueDays > 4 && (
+            <span className="text-xs px-2 py-1 rounded-full bg-purple-600 text-white font-bold whitespace-nowrap animate-pulse border-2 border-purple-400">
+              ⚡ Progress will reset!
             </span>
           )}
         </div>
@@ -166,28 +338,47 @@ const ProblemItem = ({ problem, idx, section, solved, onProblemSolved }) => {
       <td className="p-2 text-gray-800 dark:text-gray-200">{problemCategory}</td>
 
       {section != 3 && (
-        <td
-          className={`cursor-pointer p-2 text-center relative ${isDone ? "bg-green-500" : ""}`}
-          onClick={handleProblem}
-          onMouseEnter={() => { if (isDone) { setShowTooltip(true); fetchScheduleDetails(); } }}
-          onMouseLeave={() => setShowTooltip(false)}
-        >
-          {isMark ? (
-            <span className="text-sm">...</span>
-          ) : (
-            <svg className={`h-8 w-8 mx-auto ${isDone ? "text-white" : "text-gray-500"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-          )}
+        <td className="p-2 text-center">
+          <button
+            onClick={handleProblem}
+            onMouseEnter={() => { if (isDone) { setShowTooltip(true); fetchScheduleDetails(); } }}
+            onMouseLeave={() => setShowTooltip(false)}
+            disabled={isMark}
+            className={`
+              relative group w-10 h-10 rounded-lg flex items-center justify-center
+              transition-all duration-200 transform hover:scale-110
+              ${isDone
+                ? 'bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-500/30'
+                : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border-2 border-gray-300 dark:border-gray-600'
+              }
+              ${isMark ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+            `}
+          >
+            {isMark ? (
+              <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <svg
+                className={`h-6 w-6 transition-all ${isDone ? 'text-white scale-100' : 'text-gray-400 dark:text-gray-500 scale-0 group-hover:scale-100'}`}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
 
-          {showTooltip && isDone && scheduleDetails && (
-            <div className="absolute z-50 bottom-full right-0 mb-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-4 text-left">
-              <div className="text-sm space-y-2 text-gray-700 dark:text-gray-300">
-                <div><span className="font-semibold">Next Review:</span> {formatDate(scheduleDetails.nextReviewDate)}</div>
-                <div><span className="font-semibold">Solved:</span> {scheduleDetails.repetitionCount} times</div>
+            {showTooltip && isDone && scheduleDetails && (
+              <div className="absolute z-50 bottom-full right-0 mb-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-4 text-left">
+                <div className="text-sm space-y-2 text-gray-700 dark:text-300">
+                  <div><span className="font-semibold">Next Review:</span> {formatDate(scheduleDetails.nextReviewDate)}</div>
+                  <div><span className="font-semibold">Solved:</span> {scheduleDetails.repetitionCount} times</div>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </button>
         </td>
       )}
 
@@ -254,6 +445,50 @@ const ProblemItem = ({ problem, idx, section, solved, onProblemSolved }) => {
           )}
         </div>
 
+        {/* Start Confirmation Modal */}
+        {showStartModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowStartModal(false)}>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-200 dark:border-gray-700 transform transition-all scale-100" onClick={(e) => e.stopPropagation()}>
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white text-center">
+                <div className="mx-auto bg-white/20 w-16 h-16 rounded-full flex items-center justify-center mb-4 backdrop-blur-md">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold">Ready to Solve?</h3>
+                <p className="text-blue-100 mt-2">The timer will start immediately.</p>
+              </div>
+
+              <div className="p-6">
+                <div className="text-center mb-6">
+                  <p className="text-gray-600 dark:text-gray-300 text-lg">
+                    You are about to open:
+                  </p>
+                  <p className="font-bold text-gray-900 dark:text-white text-xl mt-1 truncate px-4">
+                    {problemName}
+                  </p>
+                </div>
+
+                <div className="flex space-x-4">
+                  <button
+                    onClick={() => setShowStartModal(false)}
+                    className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleStartSolving}
+                    className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold shadow-lg hover:shadow-blue-500/30 transition-all transform hover:-translate-y-0.5"
+                  >
+                    Start Solving 🚀
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Modals */}
         {showEditModal && (
           <EditProblemModal
@@ -299,7 +534,7 @@ const ProblemItem = ({ problem, idx, section, solved, onProblemSolved }) => {
           </div>
         )}
       </td>
-    </tr>
+    </tr >
   );
 };
 

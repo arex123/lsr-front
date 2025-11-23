@@ -21,11 +21,18 @@ const ActivityHeatmap = () => {
                     endDate.toISOString()
                 );
 
-                if (response.success) {
-                    setHeatmapData(response.data);
+                if (response.success && response.data) {
+                    // Ensure data is an array
+                    const dataArray = Array.isArray(response.data)
+                        ? response.data
+                        : [];
+                    setHeatmapData(dataArray);
+                } else {
+                    setHeatmapData([]);
                 }
             } catch (error) {
                 console.error('Error fetching heatmap:', error);
+                setHeatmapData([]); // Set empty array on error
             } finally {
                 setLoading(false);
             }

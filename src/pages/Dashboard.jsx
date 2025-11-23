@@ -1,10 +1,11 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import ProblemList from "../components/ProblemList";
 import AddProblemModal from "../components/AddProblemModal";
+import ActiveProblemBanner from "../components/ActiveProblemBanner";
 import { Tabs } from "antd";
 import Loader from "../components/Loader";
 import { useAuth } from "../store/AuthContext";
-import { problemAPI } from "../utils/api";
+import { problemAPI, timerAPI } from "../utils/api";
 
 const Dashboard = () => {
   const [todaysProblemIds, setTodaysProblemIds] = useState([]);
@@ -13,43 +14,60 @@ const Dashboard = () => {
   const [allProblems, setAllProblems] = useState([]); // Fetch from backend
   const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [activeSession, setActiveSession] = useState(null); // Track active timer session
   const [activeTab, setActiveTab] = useState(() => {
     // Get saved tab from localStorage or default to "1"
     return localStorage.getItem('dashboardActiveTab') || "1";
   });
-  
+
   // Filters for All Problems tab
   const [searchTerm, setSearchTerm] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState(""); // all, solved, unsolved
-  
+
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
-  
+
   const fetchData = useCallback(async () => {
     try {
       if (user?.email) {
         console.log("Fetching data for:", user.email);
         setLoading(true);
-        
-        // Fetch all problems, today's schedule, and solved list in parallel
+
+        // Fetch all problems, today's schedule, solved list, and current session in parallel
         const [
           problemsResponse,
           todaysResponse,
-          solvedResponse
+          solvedResponse,
+          sessionResponse // NEW: Fetch current session
         ] = await Promise.all([
           problemAPI.getProblems({ limit: 1000 }), // Get all problems
           problemAPI.getTodaysProblems(),
           problemAPI.getSolvedProblems(),
+          timerAPI.getCurrentSession(), // NEW: Fetch current session
         ]);
 
         console.log("All Problems:", problemsResponse);
         console.log("Today's Schedule:", todaysResponse);
         console.log("Solved Problems:", solvedResponse);
-        
+        console.log("Current Session:", sessionResponse); // NEW: Log session
+
         setAllProblems(problemsResponse.problems || []);
         setTodaysProblemIds(todaysResponse.problemIds || []);
         setTodaysProblemsWithOverdue(todaysResponse.problems || []); // Store overdue info
         setSolvedProblemIds(solvedResponse.solvedProblemIds || []);
+
+        // Enrich session with problem details
+        if (sessionResponse.session) {
+          const problem = problemsResponse.problems?.find(p => p._id === sessionResponse.session.problemId);
+          setActiveSession({
+            ...sessionResponse.session,
+            problemTitle: problem?.title,
+            problemUrl: problem?.url
+          });
+        } else {
+          setActiveSession(null);
+        }
+
         setLoading(false);
       }
     } catch (error) {
@@ -57,12 +75,43 @@ const Dashboard = () => {
       setLoading(false);
     }
   }, [user]);
-  
+
+  // Callback when session starts/stops
+  const refreshSession = useCallback(async () => {
+    try {
+      const res = await timerAPI.getCurrentSession();
+      if (res.session) {
+        const problem = allProblems.find(p => p._id === res.session.problemId);
+        setActiveSession({
+          ...res.session,
+          problemTitle: problem?.title,
+          problemUrl: problem?.url
+        });
+      } else {
+        setActiveSession(null);
+      }
+    } catch (err) {
+      console.error("Error refreshing session:", err);
+    }
+  }, [allProblems]);
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchData();
     }
   }, [isAuthenticated, fetchData]);
+
+  // Handle stopping the active session
+  const handleStopSession = async () => {
+    if (window.confirm("Are you sure you want to stop this session? This will be recorded as abandoned.")) {
+      try {
+        await timerAPI.stopSession(activeSession?.problemId);
+        await refreshSession();
+      } catch (err) {
+        console.error("Failed to stop session:", err);
+      }
+    }
+  };
 
   // Memoized computations to avoid unnecessary recalculations
   const todaysProblems = useMemo(
@@ -71,14 +120,15 @@ const Dashboard = () => {
       const overdueMap = new Map(
         todaysProblemsWithOverdue.map(p => [p.problemId, p.overdueDays])
       );
-      
+
       return allProblems
         .filter((problem) => todaysProblemIds.includes(problem._id))
-        .map(problem => ({
+        .map((problem) => ({
           ...problem,
-          overdueDays: overdueMap.get(problem._id) || 0
+          overdueDays: overdueMap.get(problem._id) || 0,
         }))
-        .filter(problem => problem.overdueDays >= 0); // Only show today's and overdue problems, not future ones
+        .filter(problem => problem.overdueDays >= 0) // Only show today's and overdue problems, not future ones
+        .sort((a, b) => (b.overdueDays || 0) - (a.overdueDays || 0)); // Sort by most overdue first
     },
     [allProblems, todaysProblemIds, todaysProblemsWithOverdue]
   );
@@ -96,15 +146,21 @@ const Dashboard = () => {
   const filteredAllProblems = useMemo(() => {
     return allProblems.filter((problem) => {
       // Search filter
-      if (searchTerm && !problem.title?.toLowerCase().includes(searchTerm.toLowerCase())) {
+      if (
+        searchTerm &&
+        !problem.title?.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !problem.tags?.some((tag) =>
+          tag.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      ) {
         return false;
       }
-      
+
       // Difficulty filter
       if (difficultyFilter && problem.difficulty !== difficultyFilter) {
         return false;
       }
-      
+
       // Status filter
       if (statusFilter === "solved" && !solvedProblemIds.includes(problem._id)) {
         return false;
@@ -112,7 +168,7 @@ const Dashboard = () => {
       if (statusFilter === "unsolved" && solvedProblemIds.includes(problem._id)) {
         return false;
       }
-      
+
       return true;
     });
   }, [allProblems, searchTerm, difficultyFilter, statusFilter, solvedProblemIds]);
@@ -126,75 +182,76 @@ const Dashboard = () => {
   const tabItems = [
     {
       key: "1",
-      label: `Today's Problems (${todaysProblems.length})`,
-      children: <ProblemList problems={todaysProblems} section={"1"} onProblemSolved={fetchData} />,
+      label: `Today's Review (${todaysProblems.length})`,
+      children: (
+        <ProblemList
+          problems={todaysProblems}
+          section={"1"}
+          solvedProblemIds={solvedProblemIds}
+          onProblemSolved={fetchData}
+          activeSession={activeSession}
+          onSessionChange={refreshSession}
+        />
+      ),
     },
     {
       key: "2",
-      label: `Unsolved Problems (${unsolvedProblems.length})`,
-      children: <ProblemList problems={unsolvedProblems} section={"2"} onProblemSolved={fetchData} />,
+      label: `Unsolved Problems (${allProblems.filter(p => !solvedProblemIds.includes(p._id)).length})`,
+      children: (
+        <ProblemList
+          problems={allProblems.filter(p => !solvedProblemIds.includes(p._id))}
+          section={"2"}
+          solvedProblemIds={solvedProblemIds}
+          onProblemSolved={fetchData}
+          activeSession={activeSession}
+          onSessionChange={refreshSession}
+        />
+      ),
     },
     {
       key: "3",
       label: `All Problems (${filteredAllProblems.length})`,
       children: (
         <div>
-          {/* Filters for All Problems */}
-          <div className="mb-4 flex flex-wrap gap-3 items-center bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-            {/* Search */}
-            <div className="flex-1 min-w-[200px]">
-              <input
-                type="text"
-                placeholder="Search problems..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
-              />
-            </div>
-            
-            {/* Difficulty Filter */}
+          {/* Search and Filter Controls */}
+          <div className="mb-6 flex flex-wrap gap-4">
+            <input
+              type="text"
+              placeholder="Search problems..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+
             <select
               value={difficultyFilter}
               onChange={(e) => setDifficultyFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">All Difficulties</option>
               <option value="Easy">Easy</option>
               <option value="Medium">Medium</option>
               <option value="Hard">Hard</option>
             </select>
-            
-            {/* Status Filter */}
+
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">All Status</option>
               <option value="solved">Solved</option>
               <option value="unsolved">Unsolved</option>
             </select>
-            
-            {/* Clear Filters */}
-            {(searchTerm || difficultyFilter || statusFilter) && (
-              <button
-                onClick={() => {
-                  setSearchTerm("");
-                  setDifficultyFilter("");
-                  setStatusFilter("");
-                }}
-                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-              >
-                Clear Filters
-              </button>
-            )}
           </div>
-          
-          <ProblemList 
-            problems={filteredAllProblems} 
-            section={"3"} 
-            solvedProblemIds={solvedProblemIds} 
-            onProblemSolved={fetchData} 
+
+          <ProblemList
+            problems={filteredAllProblems}
+            section={"3"}
+            solvedProblemIds={solvedProblemIds}
+            onProblemSolved={fetchData}
+            activeSession={activeSession}
+            onSessionChange={refreshSession}
           />
         </div>
       ),
@@ -218,15 +275,15 @@ const Dashboard = () => {
             Welcome to LeetCode Spaced Repetition
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 max-w-2xl">
-            Master coding problems with scientifically proven spaced repetition technique. 
+            Master coding problems with scientifically proven spaced repetition technique.
             Sign in to track your progress and optimize your learning journey.
           </p>
-          <div className="flex flex-col space-y-4 text-left text-gray-700 dark:text-gray-300">
+          <div className="space-y-4 text-left text-gray-600 dark:text-gray-400">
             <div className="flex items-center space-x-3">
               <svg className="w-6 h-6 text-green-500 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span>Track problems with optimized review schedules</span>
+              <span>Track your problem-solving progress</span>
             </div>
             <div className="flex items-center space-x-3">
               <svg className="w-6 h-6 text-green-500 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -248,6 +305,9 @@ const Dashboard = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Active Problem Banner */}
+      <ActiveProblemBanner activeSession={activeSession} onStop={handleStopSession} />
+
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
@@ -264,7 +324,7 @@ const Dashboard = () => {
         </button>
       </div>
       <Tabs activeKey={activeTab} onChange={handleTabChange} items={tabItems} className="dark-tabs" />
-      
+
       {/* Add Problem Modal */}
       <AddProblemModal
         isOpen={showAddModal}
